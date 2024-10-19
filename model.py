@@ -39,31 +39,32 @@ class SelfAttention(nn.Module):
         
         # retrive the Q, K, V layers from self.c_attn(x) 
         f1 = self.c_attn(x) # apply the linear layer on input
-        Q, K, V = f1[:,:,:C], f1[:,:,C:2*C], f1[:,:,2*C:] # partition the output from the first linear layer
+        Q, K, V = f1[:,:,: C], f1[:,:,C:2 * C], f1[: ,: ,2 * C:] # partition the output from the first linear layer
         # implement getting the multihead attention layers
-        K = ...
-        Q = ...
-        V = ...
+        K = K.view(B, L, self.n_head, C // self.n_head).permute(0, 2, 1, 3)
+        Q = Q.view(B, L, self.n_head, C // self.n_head).permute(0, 2, 1, 3)
+        V = V.view(B, L, self.n_head, C // self.n_head).permute(0, 2, 1, 3)
         # These conditions should be true. 
-        # assert(k.shape == torch.tensor.Size([B, self.n_head, L, C // self.n_head]) )
+        assert(K.shape == torch.Size([B, self.n_head, L, C // self.n_head]) )
         # manual implementation of attention 
         # Interact queries and keys, scale it by the embedding dimension  
-        att = ...
+        att = (1.0/math.sqrt(C // self.n_head)) * torch.matmul(Q, K.permute(0,1,3,2))
+        assert(att.shape == torch.Size([B, self.n_head, L, L]))
         # Mask it 
-        att = ... 
+        att = att * self.mask[:, :, :L, :L]
         # Apply softmax 
-        att = ...
+        att = torch.softmax(att, axis = -1) # applying softmax across the last dimension i.e. the rows for each head and batch
         # We have implemented a dropout layer for you. Uncomment it after you are finished. 
-        # att = self.attn_dropout(att) 
+        att = self.attn_dropout(att) 
         # have it interact with the value keys 
-        y = ...
-        # assert(y.shape == torch.tensor.size([B, self.n_heads, L, C // self.n_heads]))
+        y = torch.matmul(att, V) # perform the multiplication
+        assert(y.shape == torch.Size([B, self.n_head, L, C // self.n_head]))
         # re-assemble all head outputs side by side. Uncomment when you are finished. 
-        # y = y.transpose(1, 2).contiguous().view(B, L, C) 
+        y = y.transpose(1, 2).contiguous().view(B, L, C) 
         # output projection. Uncomment when you are finished. 
-        # y = self.resid_dropout(self.c_proj(y))
+        y = self.resid_dropout(self.c_proj(y))
         # modify the return statement to output y
-        return torch.randn_like(x)
+        return y
 
 class MLP(nn.Module):
 
