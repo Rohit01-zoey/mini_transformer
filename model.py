@@ -38,7 +38,8 @@ class SelfAttention(nn.Module):
         B, L, C = x.size() 
         
         # retrive the Q, K, V layers from self.c_attn(x) 
-        Q, K, V = ..., ..., ...
+        f1 = self.c_attn(x) # apply the linear layer on input
+        Q, K, V = f1[:,:,:C], f1[:,:,C:2*C], f1[:,:,2*C:] # partition the output from the first linear layer
         # implement getting the multihead attention layers
         K = ...
         Q = ...
