@@ -46,14 +46,16 @@ class SelfAttention(nn.Module):
         V = V.view(B, L, self.n_head, C // self.n_head).permute(0, 2, 1, 3)
         # These conditions should be true. 
         assert(K.shape == torch.Size([B, self.n_head, L, C // self.n_head]) )
+        assert(Q.shape == torch.Size([B, self.n_head, L, C // self.n_head]) )
+        assert(V.shape == torch.Size([B, self.n_head, L, C // self.n_head]) )
         # manual implementation of attention 
         # Interact queries and keys, scale it by the embedding dimension  
         att = (1.0/math.sqrt(C // self.n_head)) * torch.matmul(Q, K.permute(0,1,3,2))
         assert(att.shape == torch.Size([B, self.n_head, L, L]))
         # Mask it 
-        att = att * self.mask[:, :, :L, :L]
+        att = att.masked_fill(self.mask[:, :, :L, :L] == 0, float('-inf'))
         # Apply softmax 
-        att = torch.softmax(att, axis = -1) # applying softmax across the last dimension i.e. the rows for each head and batch
+        att = torch.softmax(att, dim = -1) # applying softmax across the last dimension i.e. the rows for each head and batch
         # We have implemented a dropout layer for you. Uncomment it after you are finished. 
         att = self.attn_dropout(att) 
         # have it interact with the value keys 
